@@ -160,7 +160,9 @@ final class UpgradeButton: ProGradientButton {
             .font: NSFont.systemFont(ofSize: 11, weight: .regular),
         ]
         let state = LicenseManager.shared.state
-        if case .pro = state {
+        if LicenseManager.shared.isCommunityBuild {
+            result.append(NSAttributedString(string: NSLocalizedString("Community build", comment: ""), attributes: mainAttrs))
+        } else if case .pro = state {
             let title = LicenseManager.shared.isLifetimeVariant
                 ? NSLocalizedString("Pro Lifetime activated", comment: "")
                 : NSLocalizedString("Pro activated", comment: "")

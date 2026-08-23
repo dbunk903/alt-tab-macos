@@ -70,6 +70,29 @@ final class LicenseManagerTests: XCTestCase {
         XCTAssertEqual(manager.state, .trialExpired)
     }
 
+    // MARK: - Community build
+
+    func testCommunityBuildIsAlwaysProWithoutPersistingOrCallingApi() {
+        let community = LicenseManager(clock: clock, keychain: keychain, api: api, defaults: defaults, isCommunityBuild: true)
+        community.initialize()
+        community.refreshState()
+        community.revalidateWithServer()
+        let activate = expectation(description: "activate")
+        community.activate("IGNORED") { _ in activate.fulfill() }
+        let deactivate = expectation(description: "deactivate")
+        community.deactivate { _ in deactivate.fulfill() }
+        let deactivateInstance = expectation(description: "deactivate instance")
+        community.deactivateInstance(licenseKey: "IGNORED", instanceId: "IGNORED") { _ in deactivateInstance.fulfill() }
+        wait(for: [activate, deactivate, deactivateInstance], timeout: 1)
+        XCTAssertEqual(community.state, .pro)
+        XCTAssertFalse(community.isProLocked)
+        XCTAssertNil(community.trialStartDate)
+        XCTAssertNil(keychain.value(account: LicenseManager.keychainKeyAccount))
+        XCTAssertTrue(api.activateCalls.isEmpty)
+        XCTAssertTrue(api.validateCalls.isEmpty)
+        XCTAssertTrue(api.deactivateCalls.isEmpty)
+    }
+
     // MARK: - Keychain-backed licenses
 
     func testExistingValidLicenseIsPro() {
@@ -544,4 +567,3 @@ final class MockLicenseAPI: LicenseAPI {
         DispatchQueue.main.async { completion(r) }
     }
 }
-

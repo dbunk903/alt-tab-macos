@@ -446,13 +446,15 @@ class App: AppCenterApplication {
         CursorEvents.observe()
         TrackpadEvents.observe()
         CliEvents.observe()
-        App.sparkleDelegate = SparkleDelegate()
-        App.updaterController = SPUStandardUpdaterController(
-            startingUpdater: false,
-            updaterDelegate: App.sparkleDelegate!,
-            userDriverDelegate: nil)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 30) {
-            App.updaterController?.startUpdater()
+        if !LicenseManager.shared.isCommunityBuild {
+            App.sparkleDelegate = SparkleDelegate()
+            App.updaterController = SPUStandardUpdaterController(
+                startingUpdater: false,
+                updaterDelegate: App.sparkleDelegate!,
+                userDriverDelegate: nil)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 30) {
+                App.updaterController?.startUpdater()
+            }
         }
         PreferencesEvents.initialize()
         BenchmarkRunner.startIfNeeded()

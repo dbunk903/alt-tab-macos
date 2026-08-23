@@ -45,12 +45,14 @@ class GeneralTab {
         table.addRow(captureWindowsInBackground)
         table.addNewTable()
         table.addRow(language)
-        table.addNewTable()
-        table.addRow(leftViews: [TableGroupView.makeText(NSLocalizedString("Updates policy", comment: ""))],
-            rightViews: [updatesPolicyDropdown!],
-            secondaryViews: [checkForUpdates],
-            secondaryViewsAlignment: .right,
-            secondaryViewsTopGap: 8)
+        if !LicenseManager.shared.isCommunityBuild {
+            table.addNewTable()
+            table.addRow(leftViews: [TableGroupView.makeText(NSLocalizedString("Updates policy", comment: ""))],
+                rightViews: [updatesPolicyDropdown!],
+                secondaryViews: [checkForUpdates],
+                secondaryViewsAlignment: .right,
+                secondaryViewsTopGap: 8)
+        }
         table.addRow(crashPolicy)
         let exportButton = NSButton(title: NSLocalizedString("Export settings…", comment: ""), target: nil, action: nil)
         exportButton.onAction = { _ in exportSettings() }

@@ -1,3 +1,3 @@
 #!/bin/bash
 
-DerivedData/Build/Products/Debug/AltTab.app/Contents/MacOS/AltTab --logs=debug --benchmark showUi 3
+"DerivedData/Build/Products/Debug/AltTab Community.app/Contents/MacOS/AltTab Community" --logs=debug --benchmark showUi 3

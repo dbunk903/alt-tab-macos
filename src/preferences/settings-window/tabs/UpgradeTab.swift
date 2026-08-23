@@ -113,7 +113,9 @@ class UpgradeTab {
 
     private static func makeHeaderStrip() -> NSStackView {
         let titleFont = NSFont.systemFont(ofSize: 15, weight: .medium)
-        let titleText = NSLocalizedString("AltTab Pro", comment: "")
+        let titleText = LicenseManager.shared.isCommunityBuild
+            ? NSLocalizedString("AltTab Community", comment: "")
+            : NSLocalizedString("AltTab Pro", comment: "")
         let titleAttr = NSMutableAttributedString(string: titleText, attributes: [
             .font: titleFont,
             .foregroundColor: NSColor.labelColor,
@@ -223,7 +225,11 @@ class UpgradeTab {
             setHeroVisible(false)
             featuresList.isHidden = true
             activateLinkRow.isHidden = true
-            proManageTable.isHidden = false
+            proManageTable.isHidden = LicenseManager.shared.isCommunityBuild
+            if LicenseManager.shared.isCommunityBuild {
+                statusLabel.attributedStringValue = makeStatusSubtitle(NSLocalizedString("Community build — all features enabled", comment: ""))
+                return
+            }
             let email = LicenseManager.shared.customerEmail ?? ""
             let format = LicenseManager.shared.isLifetimeVariant
                 ? NSLocalizedString("Pro Lifetime license activated for %@", comment: "")

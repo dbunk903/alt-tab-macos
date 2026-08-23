@@ -6,6 +6,8 @@
 
 `LicenseManager` is the single source of truth for whether the user has AltTab **Pro**. It computes a `LicenseState` and notifies observers when it changes. The state drives every Pro gate in the app (search, lock-search, extra shortcuts, App Icons / Titles styles, Auto size, search-on-release) and the Pro-transition prompts.
 
+The community fork injects `isCommunityBuild` only into the shared production instance. In that mode the state is always `.pro`, no trial or license data is persisted, and activation, deactivation, and validation never call the upstream license API. Unit-test managers default to the upstream behavior unless the flag is explicitly enabled.
+
 It is built from three injected collaborators so the logic is testable without real I/O — the tests pass in mocks (`MockClock`, `MockKeychain`, `MockLicenseAPI`, all defined inline at the bottom of `LicenseManagerTests.swift`):
 
 - **`Clock`** — current time. Lets tests fast-forward the trial without sleeping.
@@ -42,6 +44,7 @@ Mirrors `LicenseManagerTests.swift` 1:1. Each test uses an isolated `UserDefault
 
 ### A. Launch / initialize
 - **testFirstLaunchStartsTrial** — first launch with no stored data → `.trial(14)`, `trialStartDate` set to now.
+- **testCommunityBuildIsAlwaysProWithoutPersistingOrCallingApi** — community mode remains `.pro` without trial/keychain writes or license API traffic.
 - **testSecondLaunchPreservesTrialStart** — relaunch 3 days later reuses the original `trialStartDate` → `.trial(11)`, not a fresh trial.
 - **testTrialMidway** — trial started 7 days ago → `.trial(7)`.
 - **testTrialLastDay** — trial started 13 days ago → `.trial(1)`.

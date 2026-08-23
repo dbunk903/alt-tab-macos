@@ -10,7 +10,8 @@ class LicenseManager {
             clock: SystemClock(),
             keychain: keychain,
             api: RemoteLicenseClient(baseUrl: Endpoints.licenseApiBaseUrl, keychain: keychain),
-            defaults: UserDefaults(suiteName: defaultsSuiteName)!
+            defaults: UserDefaults(suiteName: defaultsSuiteName)!,
+            isCommunityBuild: true
         )
     }()
 
@@ -31,6 +32,7 @@ class LicenseManager {
     let keychain: Keychain
     let api: LicenseAPI
     let defaults: UserDefaults
+    let isCommunityBuild: Bool
 
     /// Called whenever `state` changes (including the initial `initialize()` assignment).
     /// Production wires this up in App.swift to refresh Menubar, sync Sparkle cookie, and notify ProTransitionManager.
@@ -52,7 +54,10 @@ class LicenseManager {
         didSet { onStateChanged?(state) }
     }
 
-    var customerEmail: String? { defaults.string(forKey: Self.customerEmailKey) }
+    var customerEmail: String? {
+        guard !isCommunityBuild else { return nil }
+        return defaults.string(forKey: Self.customerEmailKey)
+    }
 
     var isLifetimeVariant: Bool {
         guard let variant = keychain.value(account: Self.keychainVariantAccount) else { return false }
@@ -81,11 +86,12 @@ class LicenseManager {
         return Int(clock.now.timeIntervalSince(start) / 86400)
     }
 
-    init(clock: Clock, keychain: Keychain, api: LicenseAPI, defaults: UserDefaults) {
+    init(clock: Clock, keychain: Keychain, api: LicenseAPI, defaults: UserDefaults, isCommunityBuild: Bool = false) {
         self.clock = clock
         self.keychain = keychain
         self.api = api
         self.defaults = defaults
+        self.isCommunityBuild = isCommunityBuild
     }
 
     func initialize() {
@@ -102,6 +108,12 @@ class LicenseManager {
     }
 
     func activate(_ licenseKey: String, completion: @escaping (Result<Void, Error>) -> Void) {
+        guard !isCommunityBuild else {
+            onBeforeProUnlock()
+            state = .pro
+            completion(.success(()))
+            return
+        }
         api.activate(licenseKey) { [weak self] result in
             DispatchQueue.main.async {
                 guard let self else { return }
@@ -143,6 +155,11 @@ class LicenseManager {
     }
 
     func deactivate(completion: @escaping (Result<Void, Error>) -> Void) {
+        guard !isCommunityBuild else {
+            state = .pro
+            completion(.success(()))
+            return
+        }
         guard let licenseKey = keychain.value(account: Self.keychainKeyAccount),
               let instanceId = keychain.value(account: Self.keychainInstanceAccount) else {
             completion(.failure(LicenseAPIError.invalidKey))
@@ -171,12 +188,17 @@ class LicenseManager {
     /// Remote-deactivate a specific instance that isn't this machine — used to reclaim a seat
     /// before re-running activation. Does not touch local keychain/UserDefaults state.
     func deactivateInstance(licenseKey: String, instanceId: String, completion: @escaping (Result<Void, Error>) -> Void) {
+        guard !isCommunityBuild else {
+            completion(.success(()))
+            return
+        }
         api.deactivate(licenseKey, instanceId: instanceId) { result in
             DispatchQueue.main.async { completion(result) }
         }
     }
 
     func computeState() -> LicenseState {
+        guard !isCommunityBuild else { return .pro }
         if keychain.value(account: Self.keychainKeyAccount) != nil {
             let lastValidationResult = defaults.bool(forKey: "lastValidationResult")
             guard lastValidationResult else { return .trialExpired }
@@ -203,6 +225,7 @@ class LicenseManager {
     }
 
     func scheduleAsyncRevalidationIfNeeded() {
+        guard !isCommunityBuild else { return }
         let lastValidation = defaults.double(forKey: "lastValidation")
         let elapsed = clock.now.timeIntervalSince1970 - lastValidation
         guard elapsed >= Self.revalidationInterval else { return }
@@ -210,6 +233,7 @@ class LicenseManager {
     }
 
     func revalidateWithServer() {
+        guard !isCommunityBuild else { return }
         guard let licenseKey = keychain.value(account: Self.keychainKeyAccount),
               let instanceId = keychain.value(account: Self.keychainInstanceAccount) else { return }
         api.validate(licenseKey, instanceId: instanceId) { [weak self] result in
